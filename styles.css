@@ -178,6 +178,12 @@ main {
     padding-right: var(--spacing-xl);
 }
 
+.file-controls {
+    border-right: 1px solid rgba(255, 255, 255, 0.1);
+    padding-right: var(--spacing-xl);
+    padding-left: var(--spacing-xl);
+}
+
 .tool-btn {
     display: flex;
     align-items: center;
@@ -654,6 +660,119 @@ h3 {
     left: 100%;
 }
 
+/* Export Modal Styles */
+.graph-stats {
+    background-color: var(--element-bg);
+    border-radius: var(--border-radius-sm);
+    padding: var(--spacing-md);
+    margin-bottom: var(--spacing-lg);
+    position: relative;
+}
+
+.graph-stats::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 3px;
+    height: 100%;
+    background: var(--secondary-gradient);
+}
+
+.graph-stats h4, .export-options h4 {
+    margin-bottom: var(--spacing-md);
+    color: var(--primary-color);
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+#graph-stats-content p {
+    margin-bottom: var(--spacing-xs);
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.9rem;
+}
+
+#graph-stats-content span {
+    font-weight: 600;
+    color: var(--primary-color);
+}
+
+.export-options {
+    margin-bottom: var(--spacing-lg);
+}
+
+.export-options .form-group {
+    margin-bottom: var(--spacing-sm);
+}
+
+.export-options label {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+
+.export-options input[type="radio"] {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 2px solid var(--primary-color);
+    outline: none;
+    position: relative;
+}
+
+.export-options input[type="radio"]:checked::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: var(--primary-color);
+}
+
+#confirm-export-btn {
+    width: 100%;
+    padding: var(--spacing-md);
+    background: var(--secondary-gradient);
+    color: white;
+    border: none;
+    border-radius: var(--border-radius-sm);
+    cursor: pointer;
+    font-size: 0.95rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+#confirm-export-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.1);
+    transition: all 0.4s ease;
+}
+
+#confirm-export-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+#confirm-export-btn:hover::before {
+    left: 100%;
+}
+
 /* Notification */
 .notification {
     position: fixed;
@@ -708,7 +827,7 @@ h3 {
         gap: var(--spacing-md);
     }
 
-    .graph-controls {
+    .graph-controls, .file-controls {
         border-right: none;
         border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         padding-right: 0;

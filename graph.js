@@ -156,4 +156,77 @@ class Graph {
         
         return visited.size === this.vertices.length;
     }
+
+    /**
+     * Serialize the graph to a JSON string
+     * @returns {string} - JSON string representation of the graph
+     */
+    toJSON() {
+        return JSON.stringify({
+            vertices: this.vertices.map(v => ({
+                id: v.id,
+                x: v.x,
+                y: v.y,
+                label: v.label
+            })),
+            edges: this.edges.map(e => ({
+                from: e.from,
+                to: e.to,
+                weight: e.weight
+            })),
+            nextVertexId: this.nextVertexId
+        });
+    }
+
+    /**
+     * Load a graph from a JSON string
+     * @param {string} json - JSON string representation of the graph
+     * @returns {boolean} - true if successful
+     */
+    fromJSON(json) {
+        try {
+            const data = JSON.parse(json);
+            
+            // Clear existing graph
+            this.clear();
+            
+            // Load vertices
+            if (Array.isArray(data.vertices)) {
+                this.vertices = data.vertices.map(v => ({
+                    id: v.id,
+                    x: v.x,
+                    y: v.y,
+                    label: v.label,
+                    color: '#FFFFFF',
+                    isInMST: false
+                }));
+            }
+            
+            // Load edges
+            if (Array.isArray(data.edges)) {
+                this.edges = data.edges.map(e => ({
+                    from: e.from,
+                    to: e.to,
+                    weight: e.weight,
+                    color: '#AAAAAA',
+                    isInMST: false
+                }));
+            }
+            
+            // Set next vertex ID
+            if (typeof data.nextVertexId === 'number') {
+                this.nextVertexId = data.nextVertexId;
+            } else {
+                // If nextVertexId is not provided, calculate it from vertices
+                this.nextVertexId = this.vertices.length > 0 
+                    ? Math.max(...this.vertices.map(v => v.id)) + 1 
+                    : 0;
+            }
+            
+            return true;
+        } catch (error) {
+            console.error('Error loading graph from JSON:', error);
+            return false;
+        }
+    }
 } 

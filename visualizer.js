@@ -28,6 +28,16 @@ const interactionModeEl = document.getElementById('interaction-mode');
 const modeTextEl = document.querySelector('.mode-text');
 const helpBtn = document.getElementById('help-btn');
 const helpTooltip = document.getElementById('help-tooltip');
+const importBtn = document.getElementById('import-btn');
+const exportBtn = document.getElementById('export-btn');
+const fileInput = document.getElementById('file-input');
+const exportModal = document.getElementById('export-modal');
+const exportCloseBtn = document.querySelector('.export-close');
+const confirmExportBtn = document.getElementById('confirm-export-btn');
+const vertexCountEl = document.getElementById('vertex-count');
+const edgeCountEl = document.getElementById('edge-count');
+const isConnectedEl = document.getElementById('is-connected');
+const graphDensityEl = document.getElementById('graph-density');
 
 // Constants
 const VERTEX_RADIUS = 20;
@@ -678,6 +688,16 @@ window.addEventListener('keydown', (e) => {
         clearBtn.click();
     }
     
+    // 'I' key for import
+    if (e.key === 'i' || e.key === 'I') {
+        importBtn.click();
+    }
+    
+    // 'O' key for export (save)
+    if (e.key === 'o' || e.key === 'O') {
+        exportBtn.click();
+    }
+    
     // Escape key to cancel current operation
     if (e.key === 'Escape') {
         if (isAddingVertex || isAddingEdge) {
@@ -714,6 +734,183 @@ document.addEventListener('click', (e) => {
         helpTooltip.style.display = 'none';
     }
 });
+
+// Import/Export functionality
+importBtn.addEventListener('click', () => {
+    if (isRunning) return;
+    fileInput.click();
+});
+
+fileInput.addEventListener('change', (e) => {
+    if (e.target.files.length === 0) return;
+    
+    const file = e.target.files[0];
+    const reader = new FileReader();
+    
+    reader.onload = (event) => {
+        try {
+            const success = graph.fromJSON(event.target.result);
+            
+            if (success) {
+                resetAlgorithm();
+                updateVertexSelects();
+                showNotification('Graph imported successfully');
+                updateInteractionMode('Graph imported! You can now run algorithms or continue editing');
+            } else {
+                showNotification('Failed to import graph: Invalid format');
+            }
+        } catch (error) {
+            console.error('Error importing graph:', error);
+            showNotification('Failed to import graph: ' + error.message);
+        }
+        
+        // Clear the file input so the same file can be selected again
+        fileInput.value = '';
+    };
+    
+    reader.onerror = () => {
+        showNotification('Error reading file');
+        fileInput.value = '';
+    };
+    
+    reader.readAsText(file);
+});
+
+exportBtn.addEventListener('click', () => {
+    if (graph.vertices.length === 0) {
+        showNotification('Nothing to export: Graph is empty');
+        return;
+    }
+    
+    // Update graph statistics
+    updateGraphStatistics();
+    
+    // Show export modal
+    exportModal.style.display = 'block';
+});
+
+// Function to update graph statistics
+function updateGraphStatistics() {
+    const vertexCount = graph.vertices.length;
+    const edgeCount = graph.edges.length;
+    const isConnected = graph.isConnected();
+    
+    // Calculate graph density (ratio of actual edges to maximum possible edges)
+    let density = 0;
+    if (vertexCount > 1) {
+        const maxEdges = (vertexCount * (vertexCount - 1)) / 2; // Maximum possible edges in an undirected graph
+        density = (edgeCount / maxEdges) * 100;
+    }
+    
+    vertexCountEl.textContent = vertexCount;
+    edgeCountEl.textContent = edgeCount;
+    isConnectedEl.textContent = isConnected ? 'Yes' : 'No';
+    graphDensityEl.textContent = density.toFixed(1) + '%';
+}
+
+// Close export modal
+exportCloseBtn.addEventListener('click', () => {
+    exportModal.style.display = 'none';
+});
+
+// Export graph in selected format
+confirmExportBtn.addEventListener('click', () => {
+    const format = document.querySelector('input[name="export-format"]:checked').value;
+    let content = '';
+    let filename = '';
+    let mimeType = '';
+    
+    switch (format) {
+        case 'json':
+            content = graph.toJSON();
+            filename = 'graph.json';
+            mimeType = 'application/json';
+            break;
+            
+        case 'adjacency':
+            content = generateAdjacencyMatrix();
+            filename = 'adjacency_matrix.txt';
+            mimeType = 'text/plain';
+            break;
+            
+        case 'edge-list':
+            content = generateEdgeList();
+            filename = 'edge_list.txt';
+            mimeType = 'text/plain';
+            break;
+    }
+    
+    // Create blob and download
+    const blob = new Blob([content], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    
+    // Clean up
+    setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        exportModal.style.display = 'none';
+    }, 100);
+    
+    showNotification(`Graph exported as ${format.toUpperCase()}`);
+});
+
+// Generate adjacency matrix representation
+function generateAdjacencyMatrix() {
+    const vertices = graph.vertices;
+    if (vertices.length === 0) return '';
+    
+    // Create header row with vertex labels
+    let matrix = '  ' + vertices.map(v => v.label).join(' ') + '\n';
+    
+    // Create matrix rows
+    for (const vertex of vertices) {
+        let row = vertex.label + ' ';
+        
+        for (const otherVertex of vertices) {
+            const edge = graph.getEdge(vertex.id, otherVertex.id);
+            row += (edge ? edge.weight : 0) + ' ';
+        }
+        
+        matrix += row.trim() + '\n';
+    }
+    
+    return matrix;
+}
+
+// Generate edge list representation
+function generateEdgeList() {
+    if (graph.edges.length === 0) return '';
+    
+    let edgeList = 'From To Weight\n';
+    
+    for (const edge of graph.edges) {
+        const fromVertex = graph.getVertex(edge.from);
+        const toVertex = graph.getVertex(edge.to);
+        
+        edgeList += `${fromVertex.label} ${toVertex.label} ${edge.weight}\n`;
+    }
+    
+    return edgeList;
+}
+
+// Close the export modal when clicking outside
+window.addEventListener('click', (e) => {
+    if (e.target === exportModal) {
+        exportModal.style.display = 'none';
+    }
+});
+
+// Update the help tooltip to include import/export instructions
+const helpList = helpTooltip.querySelector('ul');
+const importExportTip = document.createElement('li');
+importExportTip.innerHTML = `<span class="tip-icon"></span> <strong>Import/Export:</strong> Use the Import and Export buttons to save and load graphs`;
+helpList.appendChild(importExportTip);
 
 // Add CSS for notifications
 const style = document.createElement('style');

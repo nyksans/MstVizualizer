@@ -38,6 +38,8 @@
                                         <li><strong>R</strong> - Run algorithm</li>
                                         <li><strong>S</strong> - Step algorithm</li>
                                         <li><strong>Esc</strong> - Cancel operation</li>
+                                        <li><strong>I</strong> - Import graph</li>
+                                        <li><strong>O</strong> - Export graph</li>
                                     </ul>
                                 </li>
                             </ul>
@@ -62,6 +64,17 @@
                         <span class="btn-icon">×</span>
                         <span class="btn-text">Clear</span>
                     </button>
+                </div>
+                <div class="control-group file-controls">
+                    <button id="import-btn" class="tool-btn">
+                        <span class="btn-icon">↑</span>
+                        <span class="btn-text">Import</span>
+                    </button>
+                    <button id="export-btn" class="tool-btn">
+                        <span class="btn-icon">↓</span>
+                        <span class="btn-text">Export</span>
+                    </button>
+                    <input type="file" id="file-input" accept=".json" style="display: none;">
                 </div>
                 <div class="control-group algorithm-controls">
                     <button id="run-btn" class="tool-btn primary">
@@ -128,6 +141,44 @@
                     <input type="number" id="edge-weight" min="1" value="1">
                 </div>
                 <button id="confirm-edge-btn">Add Edge</button>
+            </div>
+        </div>
+
+        <div id="export-modal" class="modal">
+            <div class="modal-content">
+                <span class="close export-close">&times;</span>
+                <h3>Graph Export Options</h3>
+                <div class="graph-stats">
+                    <h4>Graph Statistics</h4>
+                    <div id="graph-stats-content">
+                        <p>Vertices: <span id="vertex-count">0</span></p>
+                        <p>Edges: <span id="edge-count">0</span></p>
+                        <p>Connected: <span id="is-connected">Yes</span></p>
+                        <p>Density: <span id="graph-density">0%</span></p>
+                    </div>
+                </div>
+                <div class="export-options">
+                    <h4>Export Format</h4>
+                    <div class="form-group">
+                        <label>
+                            <input type="radio" name="export-format" value="json" checked>
+                            JSON (Full graph data)
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <input type="radio" name="export-format" value="adjacency">
+                            Adjacency Matrix
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <input type="radio" name="export-format" value="edge-list">
+                            Edge List
+                        </label>
+                    </div>
+                </div>
+                <button id="confirm-export-btn">Export Graph</button>
             </div>
         </div>
     </div>
