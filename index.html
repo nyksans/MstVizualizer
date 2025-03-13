@@ -4,54 +4,112 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MST Algorithm Visualizer</title>
+    <link rel="icon" type="image/png" href="logo.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>Minimum Spanning Tree Visualizer</h1>
-            <div class="algorithm-selector">
-                <button id="prims-btn" class="active">Prim's Algorithm</button>
-                <button id="kruskals-btn">Kruskal's Algorithm</button>
+            <div class="header-top">
+                <h1>Minimum Spanning Tree Visualizer</h1>
+            </div>
+            <div class="header-bottom">
+                <div class="algorithm-controls-wrapper">
+                    <div class="algorithm-selector">
+                        <button id="prims-btn" class="active">Prim's Algorithm</button>
+                        <button id="kruskals-btn">Kruskal's Algorithm</button>
+                    </div>
+                    <div class="help-container">
+                        <button id="help-btn" class="help-btn" aria-label="Help">
+                            <span class="help-icon">?</span>
+                        </button>
+                        <div id="help-tooltip" class="help-tooltip">
+                            <h4>Quick Tips</h4>
+                            <ul>
+                                <li><span class="tip-icon"></span> <strong>Add Vertex:</strong> Shift+Click on canvas</li>
+                                <li><span class="tip-icon"></span> <strong>Add Edge:</strong> Drag between vertices</li>
+                                <li><span class="tip-icon"></span> <strong>Keyboard Shortcuts:</strong>
+                                    <ul>
+                                        <li><strong>V</strong> - Toggle vertex mode</li>
+                                        <li><strong>E</strong> - Toggle edge mode</li>
+                                        <li><strong>R</strong> - Run algorithm</li>
+                                        <li><strong>S</strong> - Step algorithm</li>
+                                        <li><strong>Esc</strong> - Cancel operation</li>
+                                    </ul>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
             </div>
         </header>
 
-        <div class="controls">
-            <div class="control-group">
-                <button id="add-vertex-btn">Add Vertex</button>
-                <button id="add-edge-btn">Add Edge</button>
-                <button id="clear-btn">Clear Graph</button>
+        <main>
+            <div class="toolbar">
+                <div class="control-group graph-controls">
+                    <button id="add-vertex-btn" class="tool-btn">
+                        <span class="btn-icon">+</span>
+                        <span class="btn-text">Add Vertex</span>
+                    </button>
+                    <button id="add-edge-btn" class="tool-btn">
+                        <span class="btn-icon">—</span>
+                        <span class="btn-text">Add Edge</span>
+                    </button>
+                    <button id="clear-btn" class="tool-btn">
+                        <span class="btn-icon">×</span>
+                        <span class="btn-text">Clear</span>
+                    </button>
+                </div>
+                <div class="control-group algorithm-controls">
+                    <button id="run-btn" class="tool-btn primary">
+                        <span class="btn-icon">►</span>
+                        <span class="btn-text">Run</span>
+                    </button>
+                    <button id="step-btn" class="tool-btn">
+                        <span class="btn-icon">→</span>
+                        <span class="btn-text">Step</span>
+                    </button>
+                    <button id="reset-btn" class="tool-btn">
+                        <span class="btn-icon">↻</span>
+                        <span class="btn-text">Reset</span>
+                    </button>
+                </div>
             </div>
-            <div class="control-group">
-                <button id="run-btn">Run Algorithm</button>
-                <button id="step-btn">Step</button>
-                <button id="reset-btn">Reset</button>
-            </div>
-        </div>
 
-        <div class="visualization-container">
-            <div class="canvas-container">
-                <canvas id="graph-canvas"></canvas>
+            <div class="interaction-mode-container">
+                <div id="interaction-mode">
+                    <span class="mode-icon"></span>
+                    <span class="mode-text">Shift+Click to add vertex, Drag between vertices to add edge</span>
+                </div>
             </div>
-            <div class="info-panel">
-                <div class="algorithm-info">
-                    <h3>Algorithm Info</h3>
-                    <div id="current-algorithm">Current: Prim's Algorithm</div>
-                    <div id="algorithm-description">
-                        Prim's algorithm builds the MST by adding the minimum weight edge that connects a vertex in the tree to a vertex outside the tree.
+
+            <div class="visualization-container">
+                <div class="canvas-container">
+                    <canvas id="graph-canvas"></canvas>
+                </div>
+                <div class="info-panel">
+                    <div class="algorithm-info">
+                        <h3>Algorithm Info</h3>
+                        <div id="current-algorithm">Current: Prim's Algorithm</div>
+                        <div id="algorithm-description">
+                            Prim's algorithm builds the MST by adding the minimum weight edge that connects a vertex in the tree to a vertex outside the tree.
+                        </div>
+                    </div>
+                    <div class="step-info">
+                        <h3>Step Information</h3>
+                        <div id="step-description">No algorithm running</div>
+                    </div>
+                    <div class="edge-list">
+                        <h3>MST Edges</h3>
+                        <ul id="mst-edges"></ul>
+                        <div id="total-weight">Total Weight: 0</div>
                     </div>
                 </div>
-                <div class="step-info">
-                    <h3>Step Information</h3>
-                    <div id="step-description">No algorithm running</div>
-                </div>
-                <div class="edge-list">
-                    <h3>MST Edges</h3>
-                    <ul id="mst-edges"></ul>
-                    <div id="total-weight">Total Weight: 0</div>
-                </div>
             </div>
-        </div>
+        </main>
 
         <div id="edge-modal" class="modal">
             <div class="modal-content">

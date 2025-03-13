@@ -24,13 +24,28 @@ const fromVertexSelect = document.getElementById('from-vertex');
 const toVertexSelect = document.getElementById('to-vertex');
 const edgeWeightInput = document.getElementById('edge-weight');
 const confirmEdgeBtn = document.getElementById('confirm-edge-btn');
+const interactionModeEl = document.getElementById('interaction-mode');
+const modeTextEl = document.querySelector('.mode-text');
+const helpBtn = document.getElementById('help-btn');
+const helpTooltip = document.getElementById('help-tooltip');
 
 // Constants
 const VERTEX_RADIUS = 20;
-const EDGE_WIDTH = 3;
-const VERTEX_FONT = '16px Arial';
-const EDGE_FONT = '14px Arial';
+const EDGE_WIDTH = 2.5;
+const VERTEX_FONT = '16px "Montserrat", sans-serif';
+const EDGE_FONT = '14px "Montserrat", sans-serif';
 const ANIMATION_SPEED = 1000; // ms
+const VERTEX_COLORS = {
+    DEFAULT: '#f5f5f5',
+    SELECTED: '#b47cff',
+    IN_MST: '#64d8cb',
+    CONSIDERING: '#7e57c2'
+};
+const EDGE_COLORS = {
+    DEFAULT: 'rgba(255, 255, 255, 0.3)',
+    IN_MST: '#64d8cb',
+    CONSIDERING: '#7e57c2'
+};
 
 // State
 const graph = new Graph();
@@ -40,6 +55,10 @@ let isAddingEdge = false;
 let selectedVertex = null;
 let animationTimeout = null;
 let isRunning = false;
+let isDragging = false;
+let dragStartVertex = null;
+let mouseX = 0;
+let mouseY = 0;
 
 // Initialize canvas size
 function resizeCanvas() {
@@ -53,6 +72,9 @@ function resizeCanvas() {
 function render() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
+    // Draw grid lines for better visual reference
+    drawGrid();
+    
     // Draw edges
     for (const edge of graph.edges) {
         drawEdge(edge);
@@ -64,19 +86,75 @@ function render() {
     }
 }
 
+// Draw a grid for better visual reference
+function drawGrid() {
+    const gridSize = 40;
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.03)';
+    ctx.lineWidth = 1;
+    
+    // Draw vertical lines
+    for (let x = 0; x < canvas.width; x += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, canvas.height);
+        ctx.stroke();
+    }
+    
+    // Draw horizontal lines
+    for (let y = 0; y < canvas.height; y += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(canvas.width, y);
+        ctx.stroke();
+    }
+}
+
 // Draw a vertex
 function drawVertex(vertex) {
+    // Draw glow for selected or MST vertices
+    if (vertex.isInMST || vertex === selectedVertex || vertex === dragStartVertex) {
+        ctx.beginPath();
+        ctx.arc(vertex.x, vertex.y, VERTEX_RADIUS + 5, 0, Math.PI * 2);
+        
+        if (vertex.isInMST) {
+            ctx.fillStyle = 'rgba(100, 216, 203, 0.2)';
+        } else {
+            ctx.fillStyle = 'rgba(126, 87, 194, 0.2)';
+        }
+        
+        ctx.fill();
+    }
+    
+    // Draw vertex circle with gradient
+    const gradient = ctx.createRadialGradient(
+        vertex.x - 5, vertex.y - 5, 0,
+        vertex.x, vertex.y, VERTEX_RADIUS
+    );
+    
+    if (vertex.isInMST) {
+        gradient.addColorStop(0, '#64d8cb');
+        gradient.addColorStop(1, '#26a69a');
+    } else if (vertex === selectedVertex || vertex === dragStartVertex) {
+        gradient.addColorStop(0, '#b47cff');
+        gradient.addColorStop(1, '#7e57c2');
+    } else {
+        gradient.addColorStop(0, '#ffffff');
+        gradient.addColorStop(1, '#f0f0f0');
+    }
+    
     ctx.beginPath();
     ctx.arc(vertex.x, vertex.y, VERTEX_RADIUS, 0, Math.PI * 2);
-    ctx.fillStyle = vertex.color;
+    ctx.fillStyle = gradient;
     ctx.fill();
-    ctx.strokeStyle = '#000000';
-    ctx.lineWidth = 2;
+    
+    // Draw vertex border
+    ctx.strokeStyle = vertex.isInMST ? 'rgba(38, 166, 154, 0.8)' : 'rgba(0, 0, 0, 0.2)';
+    ctx.lineWidth = 1.5;
     ctx.stroke();
     
     // Draw label
     ctx.font = VERTEX_FONT;
-    ctx.fillStyle = '#000000';
+    ctx.fillStyle = vertex.isInMST || vertex === selectedVertex || vertex === dragStartVertex ? '#ffffff' : '#333333';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(vertex.label, vertex.x, vertex.y);
@@ -108,9 +186,24 @@ function drawEdge(edge) {
     ctx.beginPath();
     ctx.moveTo(startX, startY);
     ctx.lineTo(endX, endY);
-    ctx.strokeStyle = edge.color;
+    
+    // Create gradient for edge
+    const gradient = ctx.createLinearGradient(startX, startY, endX, endY);
+    
+    if (edge.isInMST) {
+        gradient.addColorStop(0, '#26a69a');
+        gradient.addColorStop(1, '#64d8cb');
+        ctx.strokeStyle = gradient;
+        ctx.shadowColor = 'rgba(38, 166, 154, 0.5)';
+        ctx.shadowBlur = 4;
+    } else {
+        ctx.strokeStyle = EDGE_COLORS.DEFAULT;
+        ctx.shadowBlur = 0;
+    }
+    
     ctx.lineWidth = EDGE_WIDTH;
     ctx.stroke();
+    ctx.shadowBlur = 0;
     
     // Draw weight
     const midX = (fromVertex.x + toVertex.x) / 2;
@@ -118,16 +211,28 @@ function drawEdge(edge) {
     
     // Draw background for weight
     ctx.beginPath();
-    ctx.arc(midX, midY, 15, 0, Math.PI * 2);
-    ctx.fillStyle = '#FFFFFF';
+    ctx.arc(midX, midY, 14, 0, Math.PI * 2);
+    
+    if (edge.isInMST) {
+        const weightGradient = ctx.createRadialGradient(
+            midX, midY, 0,
+            midX, midY, 14
+        );
+        weightGradient.addColorStop(0, '#64d8cb');
+        weightGradient.addColorStop(1, '#26a69a');
+        ctx.fillStyle = weightGradient;
+    } else {
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+    }
+    
     ctx.fill();
-    ctx.strokeStyle = '#000000';
+    ctx.strokeStyle = edge.isInMST ? 'rgba(38, 166, 154, 0.8)' : 'rgba(0, 0, 0, 0.1)';
     ctx.lineWidth = 1;
     ctx.stroke();
     
     // Draw weight text
     ctx.font = EDGE_FONT;
-    ctx.fillStyle = '#000000';
+    ctx.fillStyle = edge.isInMST ? '#ffffff' : '#333333';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(edge.weight.toString(), midX, midY);
@@ -228,18 +333,19 @@ function resetAlgorithm() {
 function runAlgorithm() {
     if (isRunning) return;
     if (graph.vertices.length < 2) {
-        alert('Add at least 2 vertices to run the algorithm');
+        showNotification('Add at least 2 vertices to run the algorithm');
         return;
     }
     
     if (!graph.isConnected()) {
-        alert('The graph must be connected to find an MST');
+        showNotification('The graph must be connected to find an MST');
         return;
     }
     
     isRunning = true;
     algorithm.reset();
     algorithm.prepareAlgorithm();
+    updateInteractionMode('Algorithm running...');
     
     function animateStep() {
         const hasMoreSteps = algorithm.nextStep();
@@ -250,6 +356,7 @@ function runAlgorithm() {
             animationTimeout = setTimeout(animateStep, ANIMATION_SPEED);
         } else {
             isRunning = false;
+            updateInteractionMode('Algorithm complete! Shift+Click to add vertex, Drag between vertices to add edge');
         }
     }
     
@@ -260,46 +367,158 @@ function runAlgorithm() {
 function stepAlgorithm() {
     if (isRunning) return;
     if (graph.vertices.length < 2) {
-        alert('Add at least 2 vertices to run the algorithm');
+        showNotification('Add at least 2 vertices to run the algorithm');
         return;
     }
     
     if (!graph.isConnected()) {
-        alert('The graph must be connected to find an MST');
+        showNotification('The graph must be connected to find an MST');
         return;
     }
     
     // If this is the first step, prepare the algorithm
     if (algorithm.currentStepIndex === -1) {
         algorithm.prepareAlgorithm();
+        updateInteractionMode('Stepping through algorithm...');
     }
     
     algorithm.nextStep();
     updateUI();
     render();
+    
+    if (algorithm.currentStepIndex >= algorithm.steps.length - 1) {
+        updateInteractionMode('Algorithm complete! Shift+Click to add vertex, Drag between vertices to add edge');
+    }
+}
+
+// Show a notification
+function showNotification(message) {
+    const notification = document.createElement('div');
+    notification.className = 'notification';
+    notification.textContent = message;
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.classList.add('show');
+    }, 10);
+    
+    setTimeout(() => {
+        notification.classList.remove('show');
+        setTimeout(() => {
+            document.body.removeChild(notification);
+        }, 300);
+    }, 3000);
 }
 
 // Event Listeners
 window.addEventListener('resize', resizeCanvas);
 
-canvas.addEventListener('click', (e) => {
+// Track mouse position for drawing the drag line
+canvas.addEventListener('mousemove', (e) => {
+    const rect = canvas.getBoundingClientRect();
+    mouseX = e.clientX - rect.left;
+    mouseY = e.clientY - rect.top;
+    
+    if (isDragging && dragStartVertex) {
+        render();
+        
+        // Draw a line from the start vertex to the current mouse position
+        ctx.beginPath();
+        ctx.moveTo(dragStartVertex.x, dragStartVertex.y);
+        ctx.lineTo(mouseX, mouseY);
+        ctx.strokeStyle = 'rgba(126, 87, 194, 0.5)';
+        ctx.lineWidth = EDGE_WIDTH;
+        ctx.setLineDash([8, 4]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
+});
+
+canvas.addEventListener('mousedown', (e) => {
+    if (isRunning) return;
+    
     const rect = canvas.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
     
+    const vertex = getVertexAt(x, y);
+    
+    // If we clicked on a vertex, start dragging to create an edge
+    if (vertex) {
+        isDragging = true;
+        dragStartVertex = vertex;
+        vertex.color = VERTEX_COLORS.SELECTED;
+        render();
+        updateInteractionMode('Drag to another vertex to create an edge');
+    }
+});
+
+canvas.addEventListener('mouseup', (e) => {
+    if (isRunning) return;
+    
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    
+    const vertex = getVertexAt(x, y);
+    
+    // If we were dragging and released on a different vertex, create an edge
+    if (isDragging && dragStartVertex && vertex && vertex.id !== dragStartVertex.id) {
+        // Open modal to set edge weight
+        updateVertexSelects();
+        fromVertexSelect.value = dragStartVertex.id;
+        toVertexSelect.value = vertex.id;
+        edgeWeightInput.value = 1;
+        edgeModal.style.display = 'block';
+        updateInteractionMode('Setting edge weight...');
+    } 
+    // If we were dragging and released on empty space, do nothing
+    else if (isDragging && dragStartVertex) {
+        dragStartVertex.color = VERTEX_COLORS.DEFAULT;
+        updateInteractionMode('Shift+Click to add vertex, Drag between vertices to add edge');
+    }
+    // If we weren't dragging and clicked on empty space, create a vertex (with Shift key)
+    else if (!vertex && e.shiftKey) {
+        const id = graph.addVertex(x, y);
+        showNotification(`Vertex ${graph.getVertex(id).label} added`);
+        updateInteractionMode('Vertex added! Drag between vertices to create edges');
+    }
+    
+    // Reset dragging state
+    isDragging = false;
+    if (dragStartVertex) {
+        dragStartVertex.color = VERTEX_COLORS.DEFAULT;
+        dragStartVertex = null;
+    }
+    
+    render();
+});
+
+// Update the existing click handler to work with the new interaction model
+canvas.addEventListener('click', (e) => {
+    if (isRunning) return;
+    
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    
+    // If buttons are active, use the old behavior
     if (isAddingVertex) {
-        graph.addVertex(x, y);
+        const id = graph.addVertex(x, y);
+        showNotification(`Vertex ${graph.getVertex(id).label} added`);
         render();
         isAddingVertex = false;
         addVertexBtn.classList.remove('active');
+        updateInteractionMode('Vertex added! Drag between vertices to create edges');
     } else if (isAddingEdge) {
         const vertex = getVertexAt(x, y);
         
         if (vertex) {
             if (!selectedVertex) {
                 selectedVertex = vertex;
-                vertex.color = '#FFA500';
+                vertex.color = VERTEX_COLORS.SELECTED;
                 render();
+                updateInteractionMode('Select second vertex to create an edge');
             } else if (selectedVertex.id !== vertex.id) {
                 // Open modal to set edge weight
                 updateVertexSelects();
@@ -309,16 +528,25 @@ canvas.addEventListener('click', (e) => {
                 edgeModal.style.display = 'block';
                 
                 // Reset selection
-                selectedVertex.color = '#FFFFFF';
+                selectedVertex.color = VERTEX_COLORS.DEFAULT;
                 selectedVertex = null;
                 isAddingEdge = false;
                 addEdgeBtn.classList.remove('active');
                 render();
+                updateInteractionMode('Setting edge weight...');
             }
         }
     }
 });
 
+// Function to update the interaction mode display
+function updateInteractionMode(message) {
+    if (modeTextEl) {
+        modeTextEl.textContent = message;
+    }
+}
+
+// Update button event listeners
 addVertexBtn.addEventListener('click', () => {
     if (isRunning) return;
     
@@ -328,12 +556,18 @@ addVertexBtn.addEventListener('click', () => {
     
     addVertexBtn.classList.toggle('active');
     addEdgeBtn.classList.remove('active');
+    
+    if (isAddingVertex) {
+        updateInteractionMode('Click anywhere to add a vertex');
+    } else {
+        updateInteractionMode('Shift+Click to add vertex, Drag between vertices to add edge');
+    }
 });
 
 addEdgeBtn.addEventListener('click', () => {
     if (isRunning) return;
     if (graph.vertices.length < 2) {
-        alert('Add at least 2 vertices to create an edge');
+        showNotification('Add at least 2 vertices to create an edge');
         return;
     }
     
@@ -344,27 +578,43 @@ addEdgeBtn.addEventListener('click', () => {
     addEdgeBtn.classList.toggle('active');
     addVertexBtn.classList.remove('active');
     
-    if (!isAddingEdge) {
-        render();
+    if (isAddingEdge) {
+        updateInteractionMode('Select first vertex to create an edge');
+    } else {
+        updateInteractionMode('Shift+Click to add vertex, Drag between vertices to add edge');
     }
+    
+    render();
 });
 
 clearBtn.addEventListener('click', () => {
     if (isRunning) return;
     
-    graph.clear();
-    resetAlgorithm();
+    if (graph.vertices.length > 0) {
+        if (confirm('Are you sure you want to clear the graph?')) {
+            graph.clear();
+            resetAlgorithm();
+            showNotification('Graph cleared');
+            updateInteractionMode('Graph cleared! Shift+Click to add vertex');
+        }
+    } else {
+        showNotification('Graph is already empty');
+    }
 });
 
 runBtn.addEventListener('click', runAlgorithm);
 stepBtn.addEventListener('click', stepAlgorithm);
-resetBtn.addEventListener('click', resetAlgorithm);
+resetBtn.addEventListener('click', () => {
+    resetAlgorithm();
+    updateInteractionMode('Algorithm reset! Shift+Click to add vertex, Drag between vertices to add edge');
+});
 
 primsBtn.addEventListener('click', () => switchAlgorithm('prims'));
 kruskalsBtn.addEventListener('click', () => switchAlgorithm('kruskals'));
 
 closeModalBtn.addEventListener('click', () => {
     edgeModal.style.display = 'none';
+    updateInteractionMode('Shift+Click to add vertex, Drag between vertices to add edge');
 });
 
 confirmEdgeBtn.addEventListener('click', () => {
@@ -373,26 +623,126 @@ confirmEdgeBtn.addEventListener('click', () => {
     const weight = parseInt(edgeWeightInput.value);
     
     if (fromId === toId) {
-        alert('Cannot create an edge to the same vertex');
+        showNotification('Cannot create an edge to the same vertex');
         return;
     }
     
     if (weight < 1) {
-        alert('Weight must be at least 1');
+        showNotification('Weight must be at least 1');
         return;
     }
     
+    const fromVertex = graph.getVertex(fromId);
+    const toVertex = graph.getVertex(toId);
+    
     graph.addEdge(fromId, toId, weight);
     edgeModal.style.display = 'none';
+    showNotification(`Edge from ${fromVertex.label} to ${toVertex.label} with weight ${weight} added`);
+    updateInteractionMode('Edge added! Shift+Click to add vertex, Drag between vertices to add edge');
     render();
 });
 
 window.addEventListener('click', (e) => {
     if (e.target === edgeModal) {
         edgeModal.style.display = 'none';
+        updateInteractionMode('Shift+Click to add vertex, Drag between vertices to add edge');
     }
 });
 
+// Add keyboard shortcuts
+window.addEventListener('keydown', (e) => {
+    if (isRunning) return;
+    
+    // 'V' key for vertex mode
+    if (e.key === 'v' || e.key === 'V') {
+        addVertexBtn.click();
+    }
+    
+    // 'E' key for edge mode
+    if (e.key === 'e' || e.key === 'E') {
+        addEdgeBtn.click();
+    }
+    
+    // 'R' key for run
+    if (e.key === 'r' || e.key === 'R') {
+        runBtn.click();
+    }
+    
+    // 'S' key for step
+    if (e.key === 's' || e.key === 'S') {
+        stepBtn.click();
+    }
+    
+    // 'C' key for clear
+    if (e.key === 'c' || e.key === 'C') {
+        clearBtn.click();
+    }
+    
+    // Escape key to cancel current operation
+    if (e.key === 'Escape') {
+        if (isAddingVertex || isAddingEdge) {
+            isAddingVertex = false;
+            isAddingEdge = false;
+            addVertexBtn.classList.remove('active');
+            addEdgeBtn.classList.remove('active');
+            
+            if (selectedVertex) {
+                selectedVertex.color = VERTEX_COLORS.DEFAULT;
+                selectedVertex = null;
+                render();
+            }
+            
+            updateInteractionMode('Shift+Click to add vertex, Drag between vertices to add edge');
+        }
+        
+        if (edgeModal.style.display === 'block') {
+            edgeModal.style.display = 'none';
+            updateInteractionMode('Shift+Click to add vertex, Drag between vertices to add edge');
+        }
+    }
+});
+
+// Help button functionality
+helpBtn.addEventListener('click', (e) => {
+    e.stopPropagation(); // Prevent the click from closing the tooltip
+    helpTooltip.style.display = helpTooltip.style.display === 'block' ? 'none' : 'block';
+});
+
+// Close the tooltip when clicking outside
+document.addEventListener('click', (e) => {
+    if (helpTooltip.style.display === 'block' && e.target !== helpBtn && !helpTooltip.contains(e.target)) {
+        helpTooltip.style.display = 'none';
+    }
+});
+
+// Add CSS for notifications
+const style = document.createElement('style');
+style.textContent = `
+.notification {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: var(--primary-gradient);
+    color: white;
+    padding: 12px 25px;
+    border-radius: 30px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    font-family: 'Exo 2', sans-serif;
+    font-weight: 600;
+    z-index: 1000;
+    opacity: 0;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+.notification.show {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+}
+`;
+document.head.appendChild(style);
+
 // Initialize
 resizeCanvas();
-updateUI(); 
+updateUI();
+updateInteractionMode('Shift+Click to add vertex, Drag between vertices to add edge'); 
