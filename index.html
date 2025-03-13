@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MST Algorithm Visualizer</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Minimum Spanning Tree Visualizer</h1>
+            <div class="algorithm-selector">
+                <button id="prims-btn" class="active">Prim's Algorithm</button>
+                <button id="kruskals-btn">Kruskal's Algorithm</button>
+            </div>
+        </header>
+
+        <div class="controls">
+            <div class="control-group">
+                <button id="add-vertex-btn">Add Vertex</button>
+                <button id="add-edge-btn">Add Edge</button>
+                <button id="clear-btn">Clear Graph</button>
+            </div>
+            <div class="control-group">
+                <button id="run-btn">Run Algorithm</button>
+                <button id="step-btn">Step</button>
+                <button id="reset-btn">Reset</button>
+            </div>
+        </div>
+
+        <div class="visualization-container">
+            <div class="canvas-container">
+                <canvas id="graph-canvas"></canvas>
+            </div>
+            <div class="info-panel">
+                <div class="algorithm-info">
+                    <h3>Algorithm Info</h3>
+                    <div id="current-algorithm">Current: Prim's Algorithm</div>
+                    <div id="algorithm-description">
+                        Prim's algorithm builds the MST by adding the minimum weight edge that connects a vertex in the tree to a vertex outside the tree.
+                    </div>
+                </div>
+                <div class="step-info">
+                    <h3>Step Information</h3>
+                    <div id="step-description">No algorithm running</div>
+                </div>
+                <div class="edge-list">
+                    <h3>MST Edges</h3>
+                    <ul id="mst-edges"></ul>
+                    <div id="total-weight">Total Weight: 0</div>
+                </div>
+            </div>
+        </div>
+
+        <div id="edge-modal" class="modal">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <h3>Add Edge</h3>
+                <div class="form-group">
+                    <label for="from-vertex">From Vertex:</label>
+                    <select id="from-vertex"></select>
+                </div>
+                <div class="form-group">
+                    <label for="to-vertex">To Vertex:</label>
+                    <select id="to-vertex"></select>
+                </div>
+                <div class="form-group">
+                    <label for="edge-weight">Weight:</label>
+                    <input type="number" id="edge-weight" min="1" value="1">
+                </div>
+                <button id="confirm-edge-btn">Add Edge</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="graph.js"></script>
+    <script src="algorithms.js"></script>
+    <script src="visualizer.js"></script>
+</body>
+</html> 
