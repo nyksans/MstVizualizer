@@ -176,6 +176,7 @@ const gif = new GIF({
 
 workers:2,
 quality:10,
+workerScript:"https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.worker.js",
 width:this.canvas.width,
 height:this.canvas.height
 
@@ -202,24 +203,27 @@ delay:this.speed
 
 }
 
-/* export file */
+return new Promise(resolve=>{
 
 gif.on("finished",(blob)=>{
 
 const url = URL.createObjectURL(blob);
 
 const a = document.createElement("a");
-
 a.href = url;
 a.download = "mst-animation.gif";
 
+document.body.appendChild(a);
 a.click();
+a.remove();
+
+resolve();
 
 });
 
-/* render gif */
-
 gif.render();
+
+});
 
 /* restore state */
 

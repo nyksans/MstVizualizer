@@ -42,6 +42,9 @@ const kruskalBtn = document.getElementById("kruskals-btn");
 
 const themeToggle = document.getElementById("theme-toggle");
 
+/* ⭐ FIX 1: side panel algorithm label */
+const algorithmLabel = document.getElementById("current-algorithm");
+
 const modal = document.getElementById("edge-modal");
 const weightInput = document.getElementById("edge-weight");
 const confirmEdgeBtn = document.getElementById("confirm-edge-btn");
@@ -296,6 +299,7 @@ updateModeUI();
 /* initialize */
 
 updateModeUI();
+
 /* =========================
 CLEAR
 ========================= */
@@ -363,19 +367,27 @@ resetBtn.onclick=()=> playback.reset();
 ALGORITHM SELECT
 ========================= */
 
+/* ⭐ FIX 2 */
+
 primBtn.onclick=()=>{
 
 currentAlgorithm="prim";
+
 primBtn.classList.add("active");
 kruskalBtn.classList.remove("active");
+
+algorithmLabel.innerText="Prim's Algorithm";
 
 };
 
 kruskalBtn.onclick=()=>{
 
 currentAlgorithm="kruskal";
+
 kruskalBtn.classList.add("active");
 primBtn.classList.remove("active");
+
+algorithmLabel.innerText="Kruskal's Algorithm";
 
 };
 
@@ -476,10 +488,18 @@ reader.readAsText(file);
 GIF EXPORT
 ========================= */
 
-gifBtn.onclick=()=>{
+/* ⭐ FIX 3 */
+
+gifBtn.onclick=async()=>{
+
+gifBtn.disabled=true;
+gifBtn.innerText="Rendering...";
 
 playback.pause();
-playback.exportGIF();
+await playback.exportGIF();
+
+gifBtn.disabled=false;
+gifBtn.innerText="GIF";
 
 };
 

@@ -123,9 +123,7 @@ RESET MST
 
 resetMST(){
 
-for(const e of this.edges){
-e.inMST=false;
-}
+this.edges.forEach(e=>e.inMST=false);
 
 }
 
